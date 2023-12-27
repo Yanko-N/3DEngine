@@ -24,7 +24,7 @@ struct triangle {
 	vec3d p[3];
 
 	wchar_t sym; //simbolo
-	short col; 
+	short col;  //cor
 };
 
 /// <summary>
@@ -101,5 +101,6 @@ public :
 	static vec3d Vector_Normalise(vec3d& v);
 	static vec3d Vector_CrossProduct(vec3d& v1, vec3d& v2);
 	static vec3d Vector_IntersectPlane(vec3d& plane_p, vec3d& plane_n, vec3d& lineStart, vec3d& lineEnd);
+	static int Triangle_ClipAgainstPlain(vec3d plane_p, vec3d plane_n, triangle& in_tri, triangle& _out_tri1, triangle& out_tri2);
 };
 
