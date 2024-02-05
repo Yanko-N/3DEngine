@@ -69,7 +69,7 @@ public:
 
 
 
-
+		//Aqui damos load ao objeto
 		meshCube.LoadFromObjectFile("mountains.obj");
 
 
@@ -144,76 +144,80 @@ public:
 
 		//Desenhar triangulos
 		for (auto tri : meshCube.tris) {
+
+			//Triangulo porjetados,triangulo transformado,triangulo visto
 			triangle triProjected, triTransformed, triViewed;
 
-			// World Matrix Transform
+			// Transform da Maatriz Mundo
 			triTransformed.p[0] = MathFunctions::Matrix_MultiplyVector(matrizMundo, tri.p[0]);
 			triTransformed.p[1] = MathFunctions::Matrix_MultiplyVector(matrizMundo, tri.p[1]);
 			triTransformed.p[2] = MathFunctions::Matrix_MultiplyVector(matrizMundo, tri.p[2]);
 
-			// Calculate triangle Normal
+			// Calcular a normal ao Triangulo
 			vec3d normal, line1, line2;
 
-			// Get lines either side of triangle
+			// Obter as duas linhas do triangulo
 			line1 = MathFunctions::Vector_Sub(triTransformed.p[1], triTransformed.p[0]);
 			line2 = MathFunctions::Vector_Sub(triTransformed.p[2], triTransformed.p[0]);
 
-			// Take cross product of lines to get normal to triangle surface
+			// Faz-se a multiplicação do produto cruzado para se obter a normal a superficie do triangulo 
 			normal = MathFunctions::Vector_CrossProduct(line1, line2);
 
-			// You normally need to normalise a normal!
+			// Tem de se normalizar a normal para n ter comprimento apenas direção
 			normal = MathFunctions::Vector_Normalise(normal);
 
-			// Get Ray from triangle to camera
+			// Criar um raio do triangulo para a camara
 			vec3d vCameraRay = MathFunctions::Vector_Sub(triTransformed.p[0], vCamera);
 
-			// If ray is aligned with normal, then triangle is visible
+			// Se o raio do triangulo e da camara serem alinhados quer dizer que a camara está a olhar para ele e o triangulo é visivel 
 			if (MathFunctions::Vector_DotProduct(normal, vCameraRay) < 0.0f)
 			{
-				// Illumination
+				// Iluminação basica
 				vec3d light_direction = { 0.0f, 1.0f, -1.0f };
 				light_direction = MathFunctions::Vector_Normalise(light_direction);
 
-				// How "aligned" are light direction and triangle surface normal?
+				// Quão alinhadas está a direção da luz e a superficie do triangulo
 				float dp = max(0.1f, MathFunctions::Vector_DotProduct(light_direction, normal));
 
-				// Choose console colours as required (much easier with RGB)
+				// escolher cores
 				CHAR_INFO c = GetColour(dp);
 				triTransformed.col = c.Attributes;
 				triTransformed.sym = c.Char.UnicodeChar;
 
-				// Convert World Space --> View Space
+				// Converter espaço mundo para Espaço da Vista da camara
 				triViewed.p[0] = MathFunctions::Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = MathFunctions::Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = MathFunctions::Matrix_MultiplyVector(matView, triTransformed.p[2]);
 				triViewed.sym = triTransformed.sym;
 				triViewed.col = triTransformed.col;
 
-				// Clip Viewed Triangle against near plane, this could form two additional
-				// additional triangles. 
+
+				//Os triangulos podem ser cortados pelo plano near, que podera criar 2 triangulos adicionais
+				//numero de triangulos cortados
 				int nClippedTriangles = 0;
+				//vai guardar os triangulos que iram ser recortados, se
 				triangle clipped[2];
+
 				nClippedTriangles = MathFunctions::Triangle_ClipAgainstPlain({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
 
-				// We may end up with multiple triangles form the clip, so project as
-				// required
+
+				//Poderemos ficar com vários triangulos formados do clip, então vamos projetar-los como necessario
 				for (int n = 0; n < nClippedTriangles; n++)
 				{
-					// Project triangles from 3D --> 2D
+					//Projetar de espaço 3d para 2d
 					triProjected.p[0] = MathFunctions::Matrix_MultiplyVector(matrizProjecao, clipped[n].p[0]);
 					triProjected.p[1] = MathFunctions::Matrix_MultiplyVector(matrizProjecao, clipped[n].p[1]);
 					triProjected.p[2] = MathFunctions::Matrix_MultiplyVector(matrizProjecao, clipped[n].p[2]);
 					triProjected.col = clipped[n].col;
 					triProjected.sym = clipped[n].sym;
 
-					// Scale into view, we moved the normalising into cartesian space
-					// out of the matrix.vector function from the previous videos, so
-					// do this manually
+
+					//Escalar para a vista
 					triProjected.p[0] = MathFunctions::Vector_Div(triProjected.p[0], triProjected.p[0].w);
 					triProjected.p[1] = MathFunctions::Vector_Div(triProjected.p[1], triProjected.p[1].w);
 					triProjected.p[2] = MathFunctions::Vector_Div(triProjected.p[2], triProjected.p[2].w);
 
-					// X/Y are inverted so put them back
+					// X e Y são invertidos então metemos-os corretos
 					triProjected.p[0].x *= -1.0f;
 					triProjected.p[1].x *= -1.0f;
 					triProjected.p[2].x *= -1.0f;
@@ -221,7 +225,7 @@ public:
 					triProjected.p[1].y *= -1.0f;
 					triProjected.p[2].y *= -1.0f;
 
-					// Offset verts into visible normalised space
+					// Deslocação dos vértices para o espaço normalizado visível
 					vec3d vOffsetView = { 1,1,0 };
 					triProjected.p[0] = MathFunctions::Vector_Add(triProjected.p[0], vOffsetView);
 					triProjected.p[1] = MathFunctions::Vector_Add(triProjected.p[1], vOffsetView);
@@ -233,34 +237,34 @@ public:
 					triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
 					triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
 
-					// Store triangle for sorting
+					// Guardar os triangulos para depois organizar-ls
 					vetorTriangulosToRaster.push_back(triProjected);
 				}
 			}
 
 		}
 
-		// Sort triangles from back to front
+		// Organizar os triangulos de trás para a frente
 		sort(vetorTriangulosToRaster.begin(), vetorTriangulosToRaster.end(), [](triangle& t1, triangle& t2)
 			{
 				float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
-		float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
-		return z1 > z2;
+				float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+				return z1 > z2;
 			});
 
-		// Clear Screen
+		// Limpar ecra
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
-		// Loop through all transformed, viewed, projected, and sorted triangles
+		//Loop que passa nos triangulos transformados,projetados e escalado já todos organizados
 		for (auto& triToRaster : vetorTriangulosToRaster)
 		{
-			// Clip triangles against all four screen edges, this could yield
-			// a bunch of triangles, so create a queue that we traverse to 
-			//  ensure we only test new triangles generated against planes
+			// Recortar triângulos nas quatro extremidades do ecrã, o que pode dar
+			// um monte de triângulos, então criamos uma fila que nós percorremos para 
+			// garantir que apenas testamos novos triângulos gerados contra planos
 			triangle clipped[2];
 			std::list<triangle> listTriangles;
 
-			// Add initial triangle
+			// adicionar triangulo inicial
 			listTriangles.push_back(triToRaster);
 			int nNewTriangles = 1;
 
@@ -269,16 +273,15 @@ public:
 				int nTrisToAdd = 0;
 				while (nNewTriangles > 0)
 				{
-					// Take triangle from front of queue
+					// Tirar o triangulo que está  a frente da fila
 					triangle test = listTriangles.front();
 					listTriangles.pop_front();
 					nNewTriangles--;
 
-					// Clip it against a plane. We only need to test each 
-					// subsequent plane, against subsequent new triangles
-					// as all triangles after a plane clip are guaranteed
-					// to lie on the inside of the plane. I like how this
-					// comment is almost completely and utterly justified
+					//Recortar-lo contra o plano. Nós só precisamos testar cada 
+					// plano subsequente, contra os novos triângulos subsequentes
+					// já que todos os triângulos depois de um plano cortado são garantidos
+					// estão garantidos no interior do plano.
 					switch (p)
 					{
 					case 0:	nTrisToAdd = MathFunctions::Triangle_ClipAgainstPlain({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); break;
@@ -287,9 +290,8 @@ public:
 					case 3:	nTrisToAdd = MathFunctions::Triangle_ClipAgainstPlain({ (float)ScreenWidth() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); break;
 					}
 
-					// Clipping may yield a variable number of triangles, so
-					// add these new ones to the back of the queue for subsequent
-					// clipping against next planes
+					// O recorte pode produzir um número variável de triângulos, por isso
+					// adiciona estes novos triângulos ao fim da fila para depois serem recortados
 					for (int w = 0; w < nTrisToAdd; w++)
 						listTriangles.push_back(clipped[w]);
 				}
@@ -297,7 +299,7 @@ public:
 			}
 
 
-			// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
+			//Desenhar os triangulso transformados, projetados,recortados, escalados e organizados
 			for (auto& t : listTriangles)
 			{
 				FillTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.sym, t.col);
@@ -312,17 +314,17 @@ public:
 
 	void HandleMoviment(float  fElapsedTime) {
 		if (GetKey(VK_UP).bHeld)
-			vCamera.y += 8.0f * fElapsedTime;	// Travel Upwards
+			vCamera.y += 8.0f * fElapsedTime;	//Para Cima
 
 		if (GetKey(VK_DOWN).bHeld)
-			vCamera.y -= 8.0f * fElapsedTime;	// Travel Downwards
+			vCamera.y -= 8.0f * fElapsedTime;	// PAra Baixo
 
 
-		
+
 
 		vec3d vForward = MathFunctions::Vector_Mul(vLookDirection, 8.0f * fElapsedTime);
 
-		// Standard FPS Control scheme, but turn instead of strafe
+		// Frente e Virar
 		if (GetKey(L'W').bHeld)
 			vCamera = MathFunctions::Vector_Add(vCamera, vForward);
 

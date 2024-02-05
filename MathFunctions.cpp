@@ -1,14 +1,14 @@
 #include "MathFunctions.h"
 #include <iostream>
 
-	/// <summary>
-	/// Esta função realiza a multiplicação de um vetor  (i) por uma matriz 4x4 (m),
-	/// armazenando o resultado no vetor de saída (o). Além disso, realiza a divisão perspetiva,
-	/// se necessário, para normalizar o vetor resultante.
-	/// </summary>
-	/// <param name="i"></param>
-	/// <param name="o"></param>
-	/// <param name="m"></param>
+/// <summary>
+/// Esta função realiza a multiplicação de um vetor  (i) por uma matriz 4x4 (m),
+/// armazenando o resultado no vetor de saída (o). Além disso, realiza a divisão perspetiva,
+/// se necessário, para normalizar o vetor resultante.
+/// </summary>
+/// <param name="i"></param>
+/// <param name="o"></param>
+/// <param name="m"></param>
 void MathFunctions::MultiplyMatrixVector(vec3d& i, vec3d& o, mat4x4& m) {
 
 	o.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + m.m[3][0];
@@ -339,7 +339,7 @@ vec3d  MathFunctions::Vector_IntersectPlane(vec3d& plane_p, vec3d& plane_n, vec3
 	//Calcula o termos a qual iremos escalar o ponto á
 	float t = (-plane_d - ad) / (bd - ad);
 	vec3d lineStartToEnd = Vector_Sub(lineEnd, lineStart);
-	vec3d lineToIntersect =Vector_Mul(lineStartToEnd, t);
+	vec3d lineToIntersect = Vector_Mul(lineStartToEnd, t);
 	return  Vector_Add(lineStart, lineToIntersect);
 }
 
@@ -353,24 +353,24 @@ vec3d  MathFunctions::Vector_IntersectPlane(vec3d& plane_p, vec3d& plane_n, vec3
 /// <param name="out_tri2"></param>
 /// <returns></returns>
 int MathFunctions::Triangle_ClipAgainstPlain(vec3d plane_p, vec3d plane_n, triangle& in_tri, triangle& out_tri1, triangle& out_tri2) {
-	
 
-	// Make sure plane normal is indeed normal
+
+	// Certifica-se de que a normal do plano está normalizada
 	plane_n = Vector_Normalise(plane_n);
 
-	// Return signed shortest distance from point to plane, plane normal must be normalised
+	// Retorna a distância assinada mais curta do ponto para o plano, a normal do plano deve estar normalizada
 	auto dist = [&](vec3d& p)
-	{
-		vec3d n = Vector_Normalise(p);
-		return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_n, plane_p));
-	};
+		{
+			vec3d n = Vector_Normalise(p);
+			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_n, plane_p));
+		};
 
-	// Create two temporary storage arrays to classify points either side of plane
-	// If distance sign is positive, point lies on "inside" of plane
+	// Cria dois arrays temporários de armazenamento para classificar pontos de cada lado do plano
+	// Se o sinal da distância for positivo, o ponto está do "lado de dentro" do plano
 	vec3d* inside_points[3];  int nInsidePointCount = 0;
 	vec3d* outside_points[3]; int nOutsidePointCount = 0;
 
-	// Get signed distance of each point in triangle to plane
+	// Obtém a distância assinada de cada ponto no triângulo para o plano
 	float d0 = dist(in_tri.p[0]);
 	float d1 = dist(in_tri.p[1]);
 	float d2 = dist(in_tri.p[2]);
@@ -382,200 +382,201 @@ int MathFunctions::Triangle_ClipAgainstPlain(vec3d plane_p, vec3d plane_n, trian
 	if (d2 >= 0) { inside_points[nInsidePointCount++] = &in_tri.p[2]; }
 	else { outside_points[nOutsidePointCount++] = &in_tri.p[2]; }
 
-	// Now classify triangle points, and break the input triangle into 
-	// smaller output triangles if required. There are four possible
-	// outcomes...
+	// Agora classifica pontos do triângulo e divide o triângulo de entrada em
+	// triângulos menores, se necessário. Existem quatro resultados possíveis...
 
 	if (nInsidePointCount == 0)
 	{
-		// All points lie on the outside of plane, so clip whole triangle
-		// It ceases to exist
+		// Todos os pontos estão do lado de fora do plano, então o triângulo é completamente cortado
+		// Deixa de existir
 
-		return 0; // No returned triangles are valid
+		return 0; // Não há triângulos válidos retornados
 	}
 
 	if (nInsidePointCount == 3)
 	{
-		// All points lie on the inside of plane, so do nothing
-		// and allow the triangle to simply pass through
+		// Todos os pontos estão do lado de dentro do plano, então não fazemos nada
+		// e permitimos que o triângulo passe simplesmente através
+
 		out_tri1 = in_tri;
 
-		return 1; // Just the one returned original triangle is valid
+		return 1; // Apenas o triângulo original retornado é válido
 	}
 
 	if (nInsidePointCount == 1 && nOutsidePointCount == 2)
 	{
-		// Triangle should be clipped. As two points lie outside
-		// the plane, the triangle simply becomes a smaller triangle
+		// O triângulo deve ser cortado. Como dois pontos estão fora
+		// do plano, o triângulo simplesmente se torna um triângulo menor
 
-		// Copy appearance info to new triangle
+		// Copia informações de aparência para o novo triângulo
 		out_tri1.col = in_tri.col;
 		out_tri1.sym = in_tri.sym;
 
-		// The inside point is valid, so keep that...
+		// O ponto dentro é válido, então mantemos esse...
 		out_tri1.p[0] = *inside_points[0];
 
-		// but the two new points are at the locations where the 
-		// original sides of the triangle (lines) intersect with the plane
+		// mas os dois novos pontos estão nas posições onde os
+		// lados originais do triângulo (linhas) intersectam com o plano
 		out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
 		out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[1]);
 
-		return 1; // Return the newly formed single triangle
+		return 1; // Retorna o único triângulo recém-formado
 	}
 
 	if (nInsidePointCount == 2 && nOutsidePointCount == 1)
 	{
-		// Triangle should be clipped. As two points lie inside the plane,
-		// the clipped triangle becomes a "quad". Fortunately, we can
-		// represent a quad with two new triangles
+		// O triângulo deve ser cortado. Como dois pontos estão dentro do plano,
+		// o triângulo cortado se torna um "quad". Felizmente, podemos
+		// representar um quad com dois novos triângulos
 
-		// Copy appearance info to new triangles
+		// Copia informações de aparência para os novos triângulos
 		out_tri1.col = in_tri.col;
 		out_tri1.sym = in_tri.sym;
 
 		out_tri2.col = in_tri.col;
 		out_tri2.sym = in_tri.sym;
 
-		// The first triangle consists of the two inside points and a new
-		// point determined by the location where one side of the triangle
-		// intersects with the plane
+		// O primeiro triângulo consiste nos dois pontos internos e um novo
+		// ponto determinado pela localização onde um lado do triângulo
+		// intersecta com o plano
 		out_tri1.p[0] = *inside_points[0];
 		out_tri1.p[1] = *inside_points[1];
 		out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[0], *outside_points[0]);
 
-		// The second triangle is composed of one of he inside points, a
-		// new point determined by the intersection of the other side of the 
-		// triangle and the plane, and the newly created point above
+		// O segundo triângulo é composto por um dos pontos internos, um
+		// novo ponto determinado pela interseção do outro lado do triângulo
+		// com o plano, e o ponto recém-criado acima
 		out_tri2.p[0] = *inside_points[1];
 		out_tri2.p[1] = out_tri1.p[2];
 		out_tri2.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_points[1], *outside_points[0]);
 
-		return 2; // Return two newly formed triangles which form a quad
+		return 2; // Retorna dois triângulos recém-formados que formam um quad
 	}
 
-
-	////Vamos ter a certeza que o plano é normalizado
-	//plane_n = Vector_Normalise(plane_n);
-
-	////Pequena função que calcula a distancia dos pontos
-	////Isto é uma lambda function
-	//auto dist = [&](vec3d& p) {
-	//	vec3d n = Vector_Normalise(p);
-	//	return(plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z * Vector_DotProduct(plane_n, plane_p));
-	//};
-
-	////Cria duas arrays temporarias que iram classificar os pontos se estão dentro ou fora do plano
-	////se for positivo os pontos estão dentro do plano
-
-	//vec3d* inside_Points[3];
-	//int nInsidePoints = 0;
-
-	//vec3d* outside_Points[3];
-	//int nOutsidePoints = 0;
-
-	////distancias
-	//float dist0 = dist(in_tri.p[0]);
-	//float dist1 = dist(in_tri.p[1]);
-	//float dist2 = dist(in_tri.p[2]);
-	////distancia 0
-	//if (dist0 >= 0){
-
-	//	//index é 0 e apos é incrementado
-	//	//Guardo os endereços nos apontadores
-
-	//	inside_Points[nInsidePoints++] = &in_tri.p[0];
-	//}
-	//else {
-	//	outside_Points[nOutsidePoints++]= &in_tri.p[0];
-	//}
-	////distancia 1
-	//if (dist1 >= 0) {
-	//	//index é 0 e apos é incrementado
-	//	//Guardo os endereços nos apontadores
-	//	inside_Points[nInsidePoints++] = &in_tri.p[1];
-	//}
-	//else {
-	//	outside_Points[nOutsidePoints++] = &in_tri.p[1];
-	//}
-	////distancia 2
-	//if (dist2 >= 0) {
-	//	//index é 0 e apos é incrementado
-	//	//Guardo os endereços nos apontadores
-
-	//	inside_Points[nInsidePoints++] = &in_tri.p[2];
-	//}
-	//else {
-	//	outside_Points[nOutsidePoints++] = &in_tri.p[2];
-	//}
+}
 
 
+////Vamos ter a certeza que o plano é normalizado
+//plane_n = Vector_Normalise(plane_n);
 
-	////Agora vamos classificar os pontos dos triangulos
-	////Existe 4 resultados possiveis
+////Pequena função que calcula a distancia dos pontos
+////Isto é uma lambda function
+//auto dist = [&](vec3d& p) {
+//	vec3d n = Vector_Normalise(p);
+//	return(plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z * Vector_DotProduct(plane_n, plane_p));
+//};
 
-	//if (nInsidePoints == 0) {
-	//	//Todos os pontos estão fora do plano então são todos recortados
-	//	return 0; //Não existe triangulos validos
-	//}
-	//if (nInsidePoints == 3) {
-	//	//Todos os pontos estão dentro do plano então não são  recortados
-	//	out_tri1 = in_tri;
-	//	return 1; //Apenas um triangulo é valido o Original
-	//}
+////Cria duas arrays temporarias que iram classificar os pontos se estão dentro ou fora do plano
+////se for positivo os pontos estão dentro do plano
 
-	//if (nInsidePoints == 1 && nOutsidePoints == 2) {
-	//	//O triangulo tem de ser recorttado, como tem dois pontos fora
-	//	//o triangulo vira mais pequeno
+//vec3d* inside_Points[3];
+//int nInsidePoints = 0;
 
-	//	//Copiar a aparencia do triangulo
-	//	out_tri1.col = in_tri.col;
-	//	out_tri1.sym = in_tri.sym;
-	//	
-	//	//O ponto interior é valido então guardamos-o 
-	//	//o out_tri.p é um vec3d e uma refencia agr eu guardo nele o valor que o inside_Point está a apontar
-	//	out_tri1.p[0] = *inside_Points[0];
+//vec3d* outside_Points[3];
+//int nOutsidePoints = 0;
 
-	//	//Os dois proximos pontos são os pontos das linhas originais do Triangulo  que intercetam com o plano
-	//	//logo temos de camlcular as posições desses novos pontos
-	//	
-	//	out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[0]);
-	//	out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[1]);
+////distancias
+//float dist0 = dist(in_tri.p[0]);
+//float dist1 = dist(in_tri.p[1]);
+//float dist2 = dist(in_tri.p[2]);
+////distancia 0
+//if (dist0 >= 0){
 
-	//	return 1;//devolve um triangulo completamente novo
-	//}
+//	//index é 0 e apos é incrementado
+//	//Guardo os endereços nos apontadores
 
-	//if (nInsidePoints == 2 && nOutsidePoints == 1) {
-	//	//Aqui o triangul o nessecita ser recortado obvio que tem um pequeno problema
-	//	//Como tem dois pontos dentro e apenas 1 fora será criado dois pontos na interceção com o plano
-	//	//A qual irá gerar um poligono com 4 pontos, ai será preciso tornar esse poligono de 4 pontos em 2 triangulos
+//	inside_Points[nInsidePoints++] = &in_tri.p[0];
+//}
+//else {
+//	outside_Points[nOutsidePoints++]= &in_tri.p[0];
+//}
+////distancia 1
+//if (dist1 >= 0) {
+//	//index é 0 e apos é incrementado
+//	//Guardo os endereços nos apontadores
+//	inside_Points[nInsidePoints++] = &in_tri.p[1];
+//}
+//else {
+//	outside_Points[nOutsidePoints++] = &in_tri.p[1];
+//}
+////distancia 2
+//if (dist2 >= 0) {
+//	//index é 0 e apos é incrementado
+//	//Guardo os endereços nos apontadores
 
-	//	//Copiamos a aparencia para os novos triangulos
-	//	out_tri1.col = in_tri.col;
-	//	out_tri1.sym = in_tri.sym;
-
-	//	out_tri2.col = in_tri.col;
-	//	out_tri2.sym = in_tri.sym;
-
-
-	//	//O primeiro triangulo é feito a partir dos dois pontos que estejam dentro do triangulo
-	//	//e um novo ponto que seja a interceção com o plano logo
-	//	out_tri1.p[0] = *inside_Points[0];
-	//	out_tri1.p[1] = *inside_Points[1];
-
-
-	//	//o terceiro ponto sera um dos pontos de interceção    
-	//	out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[1], *outside_Points[0]);
+//	inside_Points[nInsidePoints++] = &in_tri.p[2];
+//}
+//else {
+//	outside_Points[nOutsidePoints++] = &in_tri.p[2];
+//}
 
 
-	//	//O segundo triangulo tera de entrada o 1 ponto que esta dentro
-	//	//O ponto da interceção ja calculado e o ponto de fora
 
-	//	out_tri2.p[0] = *inside_Points[0];
-	//	out_tri2.p[1] = out_tri1.p[2];
-	//	out_tri2.p[0] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[0]);
 
-	//	return 2; //O numero de triangulos novos calculados
 
-	//}
+//if (nInsidePoints == 0) {
+//	//Todos os pontos estão fora do plano então são todos recortados
+//	return 0; //Não existe triangulos validos
+//}
+//if (nInsidePoints == 3) {
+//	//Todos os pontos estão dentro do plano então não são  recortados
+//	out_tri1 = in_tri;
+//	return 1; //Apenas um triangulo é valido o Original
+//}
+
+//if (nInsidePoints == 1 && nOutsidePoints == 2) {
+//	//O triangulo tem de ser recorttado, como tem dois pontos fora
+//	//o triangulo vira mais pequeno
+
+//	//Copiar a aparencia do triangulo
+//	out_tri1.col = in_tri.col;
+//	out_tri1.sym = in_tri.sym;
+//	
+//	//O ponto interior é valido então guardamos-o 
+//	//o out_tri.p é um vec3d e uma refencia agr eu guardo nele o valor que o inside_Point está a apontar
+//	out_tri1.p[0] = *inside_Points[0];
+
+//	//Os dois proximos pontos são os pontos das linhas originais do Triangulo  que intercetam com o plano
+//	//logo temos de camlcular as posições desses novos pontos
+//	
+//	out_tri1.p[1] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[0]);
+//	out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[1]);
+
+//	return 1;//devolve um triangulo completamente novo
+//}
+
+//if (nInsidePoints == 2 && nOutsidePoints == 1) {
+//	//Aqui o triangul o nessecita ser recortado obvio que tem um pequeno problema
+//	//Como tem dois pontos dentro e apenas 1 fora será criado dois pontos na interceção com o plano
+//	//A qual irá gerar um poligono com 4 pontos, ai será preciso tornar esse poligono de 4 pontos em 2 triangulos
+
+//	//Copiamos a aparencia para os novos triangulos
+//	out_tri1.col = in_tri.col;
+//	out_tri1.sym = in_tri.sym;
+
+//	out_tri2.col = in_tri.col;
+//	out_tri2.sym = in_tri.sym;
+
+
+//	//O primeiro triangulo é feito a partir dos dois pontos que estejam dentro do triangulo
+//	//e um novo ponto que seja a interceção com o plano logo
+//	out_tri1.p[0] = *inside_Points[0];
+//	out_tri1.p[1] = *inside_Points[1];
+
+
+//	//o terceiro ponto sera um dos pontos de interceção    
+//	out_tri1.p[2] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[1], *outside_Points[0]);
+
+
+//	//O segundo triangulo tera de entrada o 1 ponto que esta dentro
+//	//O ponto da interceção ja calculado e o ponto de fora
+
+//	out_tri2.p[0] = *inside_Points[0];
+//	out_tri2.p[1] = out_tri1.p[2];
+//	out_tri2.p[0] = Vector_IntersectPlane(plane_p, plane_n, *inside_Points[0], *outside_Points[0]);
+
+//	return 2; //O numero de triangulos novos calculados
+
+//}
 
 }
